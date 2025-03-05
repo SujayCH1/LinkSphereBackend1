@@ -1,0 +1,3 @@
+env/
+Backend/.env
+Backend/sentence_transformer/
