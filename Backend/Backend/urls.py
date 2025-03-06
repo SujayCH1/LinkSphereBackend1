@@ -17,8 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from smartConnect.views import smartConnectAlgorithm
+from smartMentor.views import mentorMatchingAlgorithm
+from tokenGenerator1.views import generateToken1
 
 urlpatterns = [
     path('smartConnect/', smartConnectAlgorithm, name='smartConnect'),
+    path('mentorMatching/', mentorMatchingAlgorithm, name='mentorMatching'),
+    path('generateToken1/', generateToken1, name='generateToken1'),
     path('admin/', admin.site.urls),
 ]

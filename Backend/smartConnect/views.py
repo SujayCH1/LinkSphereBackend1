@@ -35,33 +35,37 @@ def smartConnectAlgorithm(request):
             user_skills = ", ".join(user_profile.data[0]["skills"])
             user_vector = model.encode(user_skills)  # Convert to semantic vector
 
-            # Fetch all opposite-type users along with their skills
-            response = supabase.table("users") \
-                .select("uuid, role, profiles(skills)") \
-                .eq("role", opposite_type) \
-                .execute()
+            # Fetch opposite-type users
+            users_response = supabase.table("users").select("uuid").eq("role", opposite_type).execute()
 
+            # Fetch skills from profiles separately
+            profiles_response = supabase.table("profiles").select("uuid, skills").execute()
 
-            if response.data:
-                # Convert response to DataFrame
-                df = pd.DataFrame([
-                    {"uuid": user["uuid"], "role": user["role"], "skills": ", ".join(user["profiles"]["skills"])}
-                    for user in response.data if "profiles" in user and user["profiles"]["skills"]
-                ])
+            # Convert profiles to dictionary for easy lookup
+            profiles_dict = {p["uuid"]: p["skills"] for p in profiles_response.data if "skills" in p}
 
-                # Convert skills into semantic vectors
-                df["vector"] = df["skills"].apply(lambda x: model.encode(x))
+            # Merge profiles with users
+            data = []
+            for user in users_response.data:
+                user_uuid = user["uuid"]
+                if user_uuid in profiles_dict:
+                    skills = ", ".join(profiles_dict[user_uuid])
+                    data.append({"uuid": user_uuid, "skills": skills})
 
-                # Compute Cosine Similarity
-                df["similarity"] = df["vector"].apply(lambda v: np.dot(user_vector, v) / (np.linalg.norm(user_vector) * np.linalg.norm(v)))
+            # Convert to DataFrame
+            df = pd.DataFrame(data)
 
-                # Sort by similarity (highest first)
-                df = df.sort_values(by="similarity", ascending=False)
+            # Convert skills into semantic vectors
+            df["vector"] = df["skills"].apply(lambda x: model.encode(x))
 
-                # Return UUID and role sorted by best match
-                return JsonResponse({"matches": df[["uuid", "role"]].to_dict(orient="records")}, status=200)
+            # Compute Cosine Similarity
+            df["similarity"] = df["vector"].apply(lambda v: np.dot(user_vector, v) / (np.linalg.norm(user_vector) * np.linalg.norm(v)))
 
-            return JsonResponse({"matches": []}, status=200)
+            # Sort by similarity (highest first)
+            df = df.sort_values(by="similarity", ascending=False)
+
+            # Return only UUIDs in sorted order
+            return JsonResponse({"matches": df["uuid"].tolist()}, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
