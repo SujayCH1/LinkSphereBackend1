@@ -2,34 +2,29 @@ import jwt
 import datetime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Your Stream API credentials
 STREAM_API_KEY = os.environ.get("M_STREAM_SDK_API")
 STREAM_API_SECRET = os.environ.get("M_STREAM_SDK_SECRET")
 
 @csrf_exempt
 def generateToken1(request):
-    if request.method == 'POST':
+    if request.method == 'GET':
         try:
-            data = json.loads(request.body)
-            uuid = data.get("uuid")
+            uuid = request.GET.get("uuid")
 
             if not uuid:
                 return JsonResponse({"error": "User ID is required"}, status=400)
 
-            # Create JWT payload
             payload = {
                 "uuid": uuid,
                 "iat": datetime.datetime.utcnow(),
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),  # Token valid for 7 days
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
             }
 
-            # Generate JWT token
             token = jwt.encode(payload, STREAM_API_SECRET, algorithm="HS256")
 
             return JsonResponse({"token": token, "api_key": STREAM_API_KEY}, status=200)

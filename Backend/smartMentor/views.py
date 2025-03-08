@@ -14,16 +14,13 @@ model = SentenceTransformer(MODEL_PATH)
 
 @csrf_exempt
 def mentorMatchingAlgorithm(request):
-    if request.method == 'POST':
+    if request.method == 'GET':
         try:
-            # Parse incoming request data
-            data = json.loads(request.body)
-            student_id = data.get("uuid")
+            student_id = request.GET.get("uuid")
 
             if not student_id:
                 return JsonResponse({"error": "uuid is required"}, status=400)
 
-            # Fetch student's profile (bio + skills)
             student_profile = supabase.table("profiles").select("skills, bio").eq("uuid", student_id).execute()
             if not student_profile.data:
                 return JsonResponse({"error": "Student profile not found"}, status=404)
@@ -31,15 +28,13 @@ def mentorMatchingAlgorithm(request):
             student_skills = ", ".join(student_profile.data[0]["skills"])
             student_bio = student_profile.data[0]["bio"]
             student_text = student_skills + " " + student_bio
-            student_vector = model.encode(student_text)  # Convert to semantic vector
+            student_vector = model.encode(student_text)
 
-            # Fetch all mentors (join with users and profiles table)
             response = supabase.table("mentors") \
                 .select("mentor_id, users(uuid, first_name, last_name, age, institution_id, graduation_year, profiles(bio, skills, linkedin_url, location, profile_photo))") \
                 .execute()
 
             if response.data:
-                # Convert response to DataFrame
                 df = pd.DataFrame([
                     {
                         "uuid": mentor["users"]["uuid"],
@@ -57,16 +52,10 @@ def mentorMatchingAlgorithm(request):
                     for mentor in response.data if "users" in mentor and "profiles" in mentor["users"]
                 ])
 
-                # Convert skills + bio into semantic vectors
                 df["vector"] = df.apply(lambda row: model.encode(row["skills"] + " " + row["bio"]), axis=1)
-
-                # Compute Cosine Similarity
                 df["similarity"] = df["vector"].apply(lambda v: np.dot(student_vector, v) / (np.linalg.norm(student_vector) * np.linalg.norm(v)))
-
-                # Sort by similarity (highest first)
                 df = df.sort_values(by="similarity", ascending=False)
 
-                # Return full mentor details sorted by best match
                 return JsonResponse({"matches": df.drop(columns=["vector", "similarity"]).to_dict(orient="records")}, status=200)
 
             return JsonResponse({"matches": []}, status=200)
