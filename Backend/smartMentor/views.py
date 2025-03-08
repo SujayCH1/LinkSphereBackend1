@@ -30,14 +30,12 @@ def mentorMatchingAlgorithm(request):
 
             student_skills = ", ".join(student_profile.data[0]["skills"])
             student_bio = student_profile.data[0]["bio"]
-
-            # Combine bio and skills for embedding
             student_text = student_skills + " " + student_bio
             student_vector = model.encode(student_text)  # Convert to semantic vector
 
-            # Fetch all mentors (users that exist in mentors table)
+            # Fetch all mentors (join with users and profiles table)
             response = supabase.table("mentors") \
-                .select("mentor_id, users(uuid, profiles(skills, bio))") \
+                .select("mentor_id, users(uuid, first_name, last_name, age, institution_id, graduation_year, profiles(bio, skills, linkedin_url, location, profile_photo))") \
                 .execute()
 
             if response.data:
@@ -45,8 +43,16 @@ def mentorMatchingAlgorithm(request):
                 df = pd.DataFrame([
                     {
                         "uuid": mentor["users"]["uuid"],
+                        "first_name": mentor["users"]["first_name"],
+                        "last_name": mentor["users"]["last_name"],
+                        "age": mentor["users"]["age"],
+                        "institution_id": mentor["users"]["institution_id"],
+                        "graduation_year": mentor["users"]["graduation_year"],
+                        "bio": mentor["users"]["profiles"]["bio"],
                         "skills": ", ".join(mentor["users"]["profiles"]["skills"]),
-                        "bio": mentor["users"]["profiles"]["bio"]
+                        "linkedin_url": mentor["users"]["profiles"]["linkedin_url"],
+                        "location": mentor["users"]["profiles"]["location"],
+                        "profile_photo": mentor["users"]["profiles"]["profile_photo"]
                     }
                     for mentor in response.data if "users" in mentor and "profiles" in mentor["users"]
                 ])
@@ -60,8 +66,8 @@ def mentorMatchingAlgorithm(request):
                 # Sort by similarity (highest first)
                 df = df.sort_values(by="similarity", ascending=False)
 
-                # Return UUIDs of best mentors
-                return JsonResponse({"matches": df["uuid"].tolist()}, status=200)
+                # Return full mentor details sorted by best match
+                return JsonResponse({"matches": df.drop(columns=["vector", "similarity"]).to_dict(orient="records")}, status=200)
 
             return JsonResponse({"matches": []}, status=200)
 

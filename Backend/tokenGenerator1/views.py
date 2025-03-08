@@ -17,14 +17,14 @@ def generateToken1(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            user_id = data.get("user_id")
+            uuid = data.get("uuid")
 
-            if not user_id:
+            if not uuid:
                 return JsonResponse({"error": "User ID is required"}, status=400)
 
             # Create JWT payload
             payload = {
-                "user_id": user_id,
+                "uuid": uuid,
                 "iat": datetime.datetime.utcnow(),
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),  # Token valid for 7 days
             }

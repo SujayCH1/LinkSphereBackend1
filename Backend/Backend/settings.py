@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.0.102','192.168.23.55','192.168.159.55','192.168.147.55','172.16.16.133','127.0.0.1']
 
 
 # Application definition
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'smartConnect',
     'smartMentor',
     'tokenGenerator1',
+    'queryExecute',
 ]
 
 MIDDLEWARE = [

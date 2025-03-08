@@ -19,8 +19,10 @@ from django.urls import path
 from smartConnect.views import smartConnectAlgorithm
 from smartMentor.views import mentorMatchingAlgorithm
 from tokenGenerator1.views import generateToken1
+from queryExecute.views import fetchUserInfo
 
 urlpatterns = [
+    path('fquery/fetchUser', fetchUserInfo, name = 'fetchUser'),
     path('smartConnect/', smartConnectAlgorithm, name='smartConnect'),
     path('mentorMatching/', mentorMatchingAlgorithm, name='mentorMatching'),
     path('generateToken1/', generateToken1, name='generateToken1'),
