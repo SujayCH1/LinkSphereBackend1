@@ -27,7 +27,7 @@ def generateToken1(request):
 
             token = jwt.encode(payload, STREAM_API_SECRET, algorithm="HS256")
 
-            return JsonResponse({"token": token, "api_key": STREAM_API_KEY}, status=200)
+            return JsonResponse({"token": token}, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

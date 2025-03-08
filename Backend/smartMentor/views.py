@@ -1,6 +1,5 @@
 from django.http import JsonResponse
 from .supabase import supabase
-import json
 import pandas as pd
 import numpy as np
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +20,7 @@ def mentorMatchingAlgorithm(request):
             if not student_id:
                 return JsonResponse({"error": "uuid is required"}, status=400)
 
+            # Fetch student's profile (skills + bio)
             student_profile = supabase.table("profiles").select("skills, bio").eq("uuid", student_id).execute()
             if not student_profile.data:
                 return JsonResponse({"error": "Student profile not found"}, status=404)
@@ -30,9 +30,15 @@ def mentorMatchingAlgorithm(request):
             student_text = student_skills + " " + student_bio
             student_vector = model.encode(student_text)
 
+            # Fetch all mentors with institution names
             response = supabase.table("mentors") \
-                .select("mentor_id, users(uuid, first_name, last_name, age, institution_id, graduation_year, profiles(bio, skills, linkedin_url, location, profile_photo))") \
-                .execute()
+                .select("""
+                    mentor_id, 
+                    users(uuid, first_name, last_name, age, graduation_year, 
+                          profiles(bio, skills, linkedin_url, location, profile_photo), 
+                          institutions(name)
+                    )
+                """).execute()
 
             if response.data:
                 df = pd.DataFrame([
@@ -41,7 +47,7 @@ def mentorMatchingAlgorithm(request):
                         "first_name": mentor["users"]["first_name"],
                         "last_name": mentor["users"]["last_name"],
                         "age": mentor["users"]["age"],
-                        "institution_id": mentor["users"]["institution_id"],
+                        "institution_name": mentor["users"]["institutions"]["name"],  # Fetch institution name
                         "graduation_year": mentor["users"]["graduation_year"],
                         "bio": mentor["users"]["profiles"]["bio"],
                         "skills": ", ".join(mentor["users"]["profiles"]["skills"]),

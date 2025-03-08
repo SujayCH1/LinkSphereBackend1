@@ -19,9 +19,11 @@ from django.urls import path
 from smartConnect.views import smartConnectAlgorithm
 from smartMentor.views import mentorMatchingAlgorithm
 from tokenGenerator1.views import generateToken1
-from queryExecute.views import fetchUserInfo
+from queryExecute.views import fetchUserInfo, institution_list, upsert_user
 
 urlpatterns = [
+    path('fquery/changeUser', upsert_user, name = 'changeUser'),
+    path('fquery/fetchInstitution', institution_list, name = 'fetchInstitution'),
     path('fquery/fetchUser', fetchUserInfo, name = 'fetchUser'),
     path('smartConnect/', smartConnectAlgorithm, name='smartConnect'),
     path('mentorMatching/', mentorMatchingAlgorithm, name='mentorMatching'),
